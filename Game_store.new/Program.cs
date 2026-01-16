@@ -1,385 +1,372 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Security.Cryptography;
+using System.Collections.Generic;
 
 namespace ComputerGamesStore
 {
     class Program
     {
-        const double DefaultActionPrice = 599.0;
-        const double DefaultStrategyPrice = 449.0;
-        const double DefaultRpgPrice = 699.0;
-        const double DefaultSimulatorPrice = 399.0;
+        const string GamesFile = "games.csv";
+        const string UsersFile = "users.csv";
 
-        static List<Game> games = new List<Game>();
-        const string correctLogin = "admin";
-        const string correctPassword = "12345";
+        //  РОЛІ 
+        const string AdminEmail = "admin"; // адмінський акаунт 
+        static bool isAdmin = false;
+        static string currentUserEmail = "";
 
-        static void Main(string[] args)
+        //  ФІКСОВАНІ ЖАНРИ 
+        enum Genre
         {
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.Title = "GAME WORLD - Магазин ігор (Лабораторна №3)";
-
-            bool loggedIn = LoginSystem();
-            if (!loggedIn)
-            {
-                Console.WriteLine("Надто багато невдалих спроб. Програма завершує роботу.");
-                return;
-            }
-
-            SeedSampleGames();
-            ShowMainMenu();
+            Action = 1,
+            Strategy,
+            RPG,
+            Simulator,
+            Roleplay,
+            Adventure,
+            Sports,
+            Horror,
+            Indie,
+            Other
         }
 
-        static bool LoginSystem()
+        static void Main()
         {
-            int attempts = 0;
-            const int maxAttempts = 3;
-            string enteredLogin, enteredPassword;
+            Console.OutputEncoding = Encoding.UTF8;
+            EnsureFiles();
 
-            do
+            if (!AuthMenu())
+                return;
+
+            MainMenu();
+        }
+
+        //  FILE INIT 
+        static void EnsureFiles()
+        {
+            if (!File.Exists(GamesFile))
+                File.WriteAllText(GamesFile, "Id,Name,Genre,Price,Quantity\n");
+
+            if (!File.Exists(UsersFile))
+                File.WriteAllText(UsersFile, "Id,Email,PasswordHash\n");
+        }
+
+        //  AUTH 
+        static bool AuthMenu()
+        {
+            while (true)
             {
                 Console.Clear();
-                Console.WriteLine("=== Система входу в GAME WORLD ===");
-                Console.Write("Логін: ");
-                enteredLogin = Console.ReadLine();
-                Console.Write("Пароль: ");
-                enteredPassword = ReadPassword();
+                Console.WriteLine("1. Вхід");
+                Console.WriteLine("2. Реєстрація");
+                Console.WriteLine("0. Вихід");
+                Console.Write("Вибір: ");
 
-                if (enteredLogin == correctLogin && enteredPassword == correctPassword)
+                switch (Console.ReadLine())
                 {
-                    Console.WriteLine("\nВхід успішний! Ласкаво просимо.");
-                    Console.WriteLine("Натисніть будь-яку клавішу для продовження...");
-                    Console.ReadKey();
+                    case "1": return Login();
+                    case "2": Register(); break;
+                    case "0": return false;
+                }
+            }
+        }
+
+        static bool Login()
+        {
+            Console.Write("Email: ");
+            string email = Console.ReadLine();
+            Console.Write("Пароль: ");
+            string pass = ReadPassword();
+            string hash = Hash(pass);
+
+            foreach (var line in File.ReadAllLines(UsersFile).Skip(1))
+            {
+                var p = line.Split(',');
+                if (p.Length != 3) continue;
+
+                if (p[1] == email && p[2] == hash)
+                {
+                    currentUserEmail = email;
+                    isAdmin = string.Equals(email, AdminEmail, StringComparison.OrdinalIgnoreCase);
                     return true;
                 }
-                else
-                {
-                    attempts++;
-                    Console.WriteLine($"\nНевірні дані. Залишилось спроб: {maxAttempts - attempts}");
-                    if (attempts < maxAttempts)
-                    {
-                        Console.WriteLine("Натисніть будь-яку клавішу щоб спробувати ще раз...");
-                        Console.ReadKey();
-                    }
-                }
+            }
 
-            } while (attempts < maxAttempts);
-
+            Console.WriteLine("❌ Невірні дані");
+            Console.ReadKey();
             return false;
         }
 
-        static string ReadPassword()
+        static void Register()
         {
-            string pwd = string.Empty;
-            ConsoleKeyInfo key;
-            do
+            Console.Write("Email: ");
+            string email = Console.ReadLine();
+
+            if (File.ReadAllLines(UsersFile).Any(l => l.Split(',').Length == 3 && l.Split(',')[1] == email))
             {
-                key = Console.ReadKey(true);
-                if (key.Key == ConsoleKey.Backspace && pwd.Length > 0)
-                {
-                    pwd = pwd.Substring(0, pwd.Length - 1);
-                    Console.Write("\b \b");
-                }
-                else if (!char.IsControl(key.KeyChar))
-                {
-                    pwd += key.KeyChar;
-                    Console.Write("*");
-                }
-            } while (key.Key != ConsoleKey.Enter);
-
-            return pwd;
-        }
-
-        static void ShowMainMenu()
-        {
-            bool exit = false;
-            while (!exit)
-            {
-                Console.Clear();
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("═══════════════════════════════════════════════");
-                Console.WriteLine("           GAME WORLD - Магазин ігор");
-                Console.WriteLine("═══════════════════════════════════════════════");
-                Console.ResetColor();
-                Console.WriteLine();
-
-                Console.WriteLine("1. Додати ігри (ввести через цикл)");
-                Console.WriteLine("2. Переглянути асортимент");
-                Console.WriteLine("3. Статистика по товарам");
-                Console.WriteLine("4. Пошук гри (за назвою)");
-                Console.WriteLine("5. Розрахувати покупку (кошик)");
-                Console.WriteLine("6. Зберегти інвентар у файл");
-                Console.WriteLine("7. Завантажити інвентар з файлу");
-                Console.WriteLine("8. Видалити гру за ID");
-                Console.WriteLine("9. Сортувати ігри");
-                Console.WriteLine("0. Вихід");
-                Console.WriteLine();
-                Console.Write("Ваш вибір: ");
-
-                string input = Console.ReadLine();
-                int choice;
-                if (!int.TryParse(input, out choice))
-                {
-                    Console.WriteLine("⚠ Помилка: введіть число від 0 до 9.");
-                    Pause();
-                    continue;
-                }
-
-                switch (choice)
-                {
-                    case 1: AddGamesInteractive(); break;
-                    case 2: ShowProducts(); break;
-                    case 3: ShowStatistics(); break;
-                    case 4: SearchGameByName(); break;
-                    case 5: CalculatePurchase(); break;
-                    case 6: SaveInventoryToFile(); break;
-                    case 7: LoadInventoryFromFile(); break;
-                    case 8: DeleteGameById(); break;
-                    case 9: SortGamesMenu(); break;
-                    case 0: Console.WriteLine("Вихід із програми..."); exit = true; break;
-                    default: Console.WriteLine("❌ Невірний вибір! Спробуйте ще раз."); break;
-                }
-
-                if (!exit)
-                {
-                    Console.WriteLine("\nНатисніть будь-яку клавішу, щоб повернутися до меню...");
-                    Console.ReadKey();
-                }
+                Console.WriteLine("❌ Email вже існує");
+                Console.ReadKey();
+                return;
             }
-        }
 
-        static void Pause()
-        {
-            Console.WriteLine("Натисніть будь-яку клавішу...");
+            Console.Write("Пароль: ");
+            string pass = ReadPassword();
+            int id = GenerateId(UsersFile);
+
+            File.AppendAllText(UsersFile, $"{id},{email},{Hash(pass)}\n");
+            Console.WriteLine("✅ Реєстрація успішна");
             Console.ReadKey();
         }
 
-        enum Genre { Action, Strategy, RPG, Simulator, Other }
-
-        struct Game
+        //  MAIN MENU 
+        static void MainMenu()
         {
-            public int Id;
-            public string Name;
-            public Genre GameGenre;
-            public double Price;
-            public int Quantity;
-
-            public Game(int id, string name, Genre genre, double price, int quantity)
+            while (true)
             {
-                Id = id;
-                Name = name;
-                GameGenre = genre;
-                Price = price;
-                Quantity = quantity;
-            }
+                Console.Clear();
 
-            public void DisplayLine()
-            {
-                Console.WriteLine($"[{Id,2}] {Name,-30} | {GameGenre,-9} | {Price,8:F2} грн | Кільк: {Quantity}");
-            }
+                // Показуємо хто зайшов
+                Console.WriteLine(isAdmin
+                    ? $"Увійшли як: {currentUserEmail} (ADMIN)"
+                    : $"Увійшли як: {currentUserEmail} (BUYER)");
+                Console.WriteLine();
 
-            public string ToFileString()
-            {
-                return $"{Id}\t{Name}\t{GameGenre}\t{Price}\t{Quantity}";
-            }
+                if (isAdmin)
+                {
+                    Console.WriteLine("1. Додати гру");
+                    Console.WriteLine("2. Показати ігри");
+                    Console.WriteLine("3. Видалити гру");
+                    Console.WriteLine("4. Статистика");
+                    Console.WriteLine("5. Купити ігри (кошик з рандомною знижкою)");
+                    Console.WriteLine("6. Редагувати гру");
+                    Console.WriteLine("7. Фільтрація ігор за жанром");
+                    Console.WriteLine("0. Вихід");
+                }
+                else
+                {
+                    // БАЗОВЕ МЕНЮ ПОКУПЦЯ
+                    Console.WriteLine("2. Показати ігри");
+                    Console.WriteLine("4. Статистика");
+                    Console.WriteLine("5. Купити ігри (кошик з рандомною знижкою)");
+                    Console.WriteLine("7. Фільтрація ігор за жанром");
+                    Console.WriteLine("0. Вихід");
+                }
 
-            public static bool TryParseFromFile(string line, out Game g)
-            {
-                g = new Game();
-                var parts = line.Split('\t');
-                if (parts.Length != 5) return false;
-                int id; double price; int qty; Genre genre;
-                if (!int.TryParse(parts[0], out id)) return false;
-                if (!Enum.TryParse(parts[2], out genre)) return false;
-                if (!double.TryParse(parts[3], out price)) return false;
-                if (!int.TryParse(parts[4], out qty)) return false;
-                g = new Game(id, parts[1], genre, price, qty);
-                return true;
+                Console.Write("\nВибір: ");
+                string choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    // Доступно всім
+                    case "2": ShowGames(); break;
+                    case "4": Stats(); break;
+                    case "5": BuyGames(); break;
+                    case "7": FilterGamesByGenre(); break;
+                    case "0": return;
+
+                    // Тільки адміну
+                    case "1":
+                        if (!RequireAdmin()) break;
+                        AddGame();
+                        break;
+
+                    case "3":
+                        if (!RequireAdmin()) break;
+                        DeleteGame();
+                        break;
+
+                    case "6":
+                        if (!RequireAdmin()) break;
+                        EditGame();
+                        break;
+
+                    default:
+                        Console.WriteLine("❌ Невірний вибір або немає доступу.");
+                        Console.ReadKey();
+                        break;
+                }
             }
         }
 
-        static void AddGamesInteractive()
+        //  ПЕРЕВІРКА ПРАВ АДМІНА 
+        static bool RequireAdmin()
+        {
+            if (isAdmin) return true;
+
+            Console.WriteLine("⛔ Доступ заборонено. Ця функція доступна лише адміністратору.");
+            Console.ReadKey();
+            return false;
+        }
+
+        //  GAMES 
+        static void AddGame()
         {
             Console.Clear();
-            Console.WriteLine("=== Додавання ігор ===");
-            Console.Write("Скільки ігор ви хочете додати (мін 1, макс 20): ");
+            Console.WriteLine("=== ДОДАТИ ГРУ ===");
 
-            int count;
-            if (!int.TryParse(Console.ReadLine(), out count) || count < 1 || count > 20)
+            Console.Write("Назва: ");
+            string name = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(name))
             {
-                Console.WriteLine("⚠ Невірне число. Дозволено від 1 до 20.");
+                Console.WriteLine("❌ Назва не може бути порожньою.");
+                Console.ReadKey();
                 return;
             }
 
-            int startId = games.Count > 0 ? games.Max(g => g.Id) + 1 : 1;
-            for (int i = 0; i < count; i++)
+            Genre genre = ChooseGenre();
+
+            Console.Write("Ціна: ");
+            if (!double.TryParse(Console.ReadLine(), out double price) || price <= 0)
             {
-                Console.WriteLine($"\nВведення гри #{i + 1}:");
-
-                Console.Write("Назва: ");
-                string name = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    Console.WriteLine("Ім'я не може бути пустим. Пропускаємо цю гру (continue).");
-                    continue;
-                }
-
-                Console.Write("Жанр (Action/Strategy/RPG/Simulator/Other): ");
-                string genreStr = Console.ReadLine();
-                Genre genre;
-                if (!Enum.TryParse(genreStr, true, out genre))
-                {
-                    Console.WriteLine("Невідомий жанр — буде встановлено Other.");
-                    genre = Genre.Other;
-                }
-
-                Console.Write("Ціна (грн): ");
-                double price;
-                if (!double.TryParse(Console.ReadLine(), out price) || price <= 0)
-                {
-                    Console.WriteLine("Невірна ціна — пропускаємо цю гру.");
-                    continue;
-                }
-
-                Console.Write("Кількість на складі: ");
-                int qty;
-                if (!int.TryParse(Console.ReadLine(), out qty) || qty < 0)
-                {
-                    Console.WriteLine("Невірна кількість — встановлюємо 0.");
-                    qty = 0;
-                }
-
-                var game = new Game(startId + i, name.Trim(), genre, price, qty);
-                games.Add(game);
-                Console.WriteLine("Гра додана.");
-            }
-        }
-
-        static void ShowProducts()
-        {
-            Console.Clear();
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("МЕНЮ КОМП'ЮТЕРНИХ ІГОР:");
-            Console.ResetColor();
-
-            if (games.Count == 0)
-            {
-                Console.WriteLine("Поки що ігор немає. Додайте їх через пункт 1.");
+                Console.WriteLine("❌ Невірна ціна.");
+                Console.ReadKey();
                 return;
             }
 
-            Console.WriteLine("[ID] Назва                          | Жанр      |    Ціна | Кільк");
-            Console.WriteLine(new string('─', 70));
+            Console.Write("Кількість: ");
+            if (!int.TryParse(Console.ReadLine(), out int qty) || qty < 0)
+            {
+                Console.WriteLine("❌ Невірна кількість.");
+                Console.ReadKey();
+                return;
+            }
 
-            foreach (var g in games)
-                g.DisplayLine();
+            int id = GenerateId(GamesFile);
+            File.AppendAllText(GamesFile, $"{id},{EscapeCsv(name.Trim())},{genre},{price},{qty}\n");
+
+            Console.WriteLine("✅ Гру додано!");
+            Console.ReadKey();
         }
 
-        static void ShowStatistics()
+        static void ShowGames()
         {
             Console.Clear();
-            Console.WriteLine("=== Статистика інвентарю ===");
 
-            if (games.Count == 0)
+            Console.WriteLine("ID | Назва                | Жанр       |   Ціна | Кількість");
+            Console.WriteLine(new string('-', 60));
+
+            foreach (var line in File.ReadAllLines(GamesFile).Skip(1))
+            {
+                var p = line.Split(',');
+                if (p.Length != 5) continue;
+
+                Console.WriteLine($"{p[0],2} | {p[1],-20} | {p[2],-10} | {p[3],6} | {p[4],8}");
+            }
+
+            Console.ReadKey();
+        }
+
+        static void DeleteGame()
+        {
+            Console.Clear();
+            Console.WriteLine("=== ВИДАЛЕННЯ ГРИ ===");
+            Console.Write("ID: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("❌ Невірний ID.");
+                Console.ReadKey();
+                return;
+            }
+
+            var lines = File.ReadAllLines(GamesFile)
+                .Where(l => !(l.StartsWith(id + ",")))
+                .ToArray();
+
+            File.WriteAllLines(GamesFile, lines);
+
+            Console.WriteLine("✅ Якщо ID існував — гру видалено.");
+            Console.ReadKey();
+        }
+
+        static void Stats()
+        {
+            Console.Clear();
+            Console.WriteLine("=== СТАТИСТИКА ===");
+
+            var data = File.ReadAllLines(GamesFile).Skip(1)
+                .Select(l => l.Split(','))
+                .Where(p => p.Length == 5 && double.TryParse(p[3], out _) && int.TryParse(p[4], out _))
+                .ToList();
+
+            if (data.Count == 0)
             {
                 Console.WriteLine("Немає даних для статистики.");
+                Console.ReadKey();
                 return;
             }
 
-            double totalSum = 0;
-            double sumPrices = 0;
-            int countWithPrice = 0;
-            int expensiveCount = 0;
+            double min = data.Min(p => double.Parse(p[3]));
+            double max = data.Max(p => double.Parse(p[3]));
+            double avg = data.Average(p => double.Parse(p[3]));
+            double sum = data.Sum(p => double.Parse(p[3]) * int.Parse(p[4]));
+            int count = data.Count;
 
-            double minPrice = double.MaxValue;
-            double maxPrice = double.MinValue;
-            string cheapest = "-";
-            string mostExpensive = "-";
-
-            for (int i = 0; i < games.Count; i++)
-            {
-                var g = games[i];
-                if (g.Price <= 0) continue;
-
-                totalSum += g.Price * g.Quantity;
-                sumPrices += g.Price;
-                countWithPrice++;
-
-                if (g.Price > 500) expensiveCount++;
-
-                if (g.Price < minPrice)
-                {
-                    minPrice = g.Price;
-                    cheapest = g.Name;
-                }
-                if (g.Price > maxPrice)
-                {
-                    maxPrice = g.Price;
-                    mostExpensive = g.Name;
-                }
-            }
-
-            double averagePrice = countWithPrice > 0 ? sumPrices / countWithPrice : 0;
-
-            Console.WriteLine($"Загальна сума (враховуючи кількість): {totalSum:F2} грн");
-            Console.WriteLine($"Середня ціна товару: {averagePrice:F2} грн");
-            Console.WriteLine($"Кількість товарів дорожчих за 500 грн: {expensiveCount}");
-            if (countWithPrice > 0)
-            {
-                Console.WriteLine($"Найдешевша гра: {cheapest} ({minPrice:F2} грн)");
-                Console.WriteLine($"Найдорожча гра: {mostExpensive} ({maxPrice:F2} грн)");
-            }
-            else
-            {
-                Console.WriteLine("Немає коректних цін для мін/макс.");
-            }
-
-            Console.WriteLine("\n=== Звіт: таблиця інвентарю ===");
-            Console.WriteLine("[ID] Назва                          | Жанр      |    Ціна | Кільк");
-            Console.WriteLine(new string('─', 70));
-            foreach (var g in games)
-                g.DisplayLine();
-
-            Console.WriteLine("\n(Підсумки вгорі — перевірте, чи вірно враховано кількості та ціни.)");
+            Console.WriteLine($"Кількість ігор: {count}");
+            Console.WriteLine($"Мінімальна вартість: {min}");
+            Console.WriteLine($"Максимальна вартість: {max}");
+            Console.WriteLine($"Середня вартість: {avg}");
+            Console.WriteLine($"Сума на складі: {sum}");
+            Console.ReadKey();
         }
 
-        static void SearchGameByName()
+        //  ФІЛЬТРАЦІЯ ЗА ЖАНРОМ 
+        static void FilterGamesByGenre()
         {
             Console.Clear();
-            Console.WriteLine("=== Пошук гри за назвою ===");
-            Console.Write("Введіть частину або повну назву: ");
-            string query = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(query))
+            Console.WriteLine("=== ФІЛЬТРАЦІЯ ІГОР ЗА ЖАНРОМ ===");
+
+            Genre genre = ChooseGenre();
+            string genreStr = genre.ToString();
+
+            var rows = File.ReadAllLines(GamesFile).Skip(1)
+                .Select(l => l.Split(','))
+                .Where(p => p.Length == 5 && string.Equals(p[2], genreStr, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            Console.Clear();
+            Console.WriteLine($"=== Жанр: {genreStr} ===");
+            Console.WriteLine("ID | Назва                | Жанр       |   Ціна | Кількість");
+            Console.WriteLine(new string('-', 60));
+
+            if (rows.Count == 0)
             {
-                Console.WriteLine("Порожній запит.");
+                Console.WriteLine("Нічого не знайдено.");
+                Console.ReadKey();
                 return;
             }
 
-            bool found = false;
-            foreach (var g in games)
-            {
-                if (g.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    Console.WriteLine("Знайдено:");
-                    g.DisplayLine();
-                    found = true;
-                }
-            }
+            foreach (var p in rows)
+                Console.WriteLine($"{p[0],2} | {p[1],-20} | {p[2],-10} | {p[3],6} | {p[4],8}");
 
-            if (!found)
-                Console.WriteLine("За заданим запитом нічого не знайдено.");
+            Console.ReadKey();
         }
 
-        static void CalculatePurchase()
+        //  Кошик з рандомною знижкою 
+        static void BuyGames()
         {
             Console.Clear();
-            Console.WriteLine("=== РОЗРАХУНОК ПОКУПКИ ===");
+            Console.WriteLine("=== КУПІВЛЯ ІГОР ===");
 
-            if (games.Count == 0)
+            var gamesList = File.ReadAllLines(GamesFile).Skip(1)
+                .Select(l => l.Split(','))
+                .Where(p => p.Length == 5)
+                .Select(p => new
+                {
+                    Id = int.TryParse(p[0], out var id) ? id : -1,
+                    Name = p[1],
+                    Genre = p[2],
+                    Price = double.TryParse(p[3], out var pr) ? pr : 0,
+                    Quantity = int.TryParse(p[4], out var qt) ? qt : 0
+                })
+                .Where(g => g.Id > 0)
+                .ToList();
+
+            if (gamesList.Count == 0)
             {
-                Console.WriteLine("Немає товарів у магазині — спочатку додайте ігри.");
+                Console.WriteLine("Магазин порожній. Додайте ігри через меню.");
+                Console.ReadKey();
                 return;
             }
 
@@ -387,27 +374,33 @@ namespace ComputerGamesStore
 
             while (true)
             {
-                Console.Write("Введіть ID гри для додавання в кошик (0 - завершити): ");
-                int id;
-                if (!int.TryParse(Console.ReadLine(), out id))
+                Console.Write("Введіть ID гри для покупки (0 - завершити): ");
+                if (!int.TryParse(Console.ReadLine(), out int id))
                 {
-                    Console.WriteLine("Невірний ID — спробуйте ще раз.");
+                    Console.WriteLine("Невірний ID. Спробуйте ще раз.");
                     continue;
                 }
                 if (id == 0) break;
 
-                var game = games.FirstOrDefault(g => g.Id == id);
-                if (game.Equals(default(Game)))
+                var game = gamesList.FirstOrDefault(g => g.Id == id);
+                if (game == null)
                 {
                     Console.WriteLine("Гра з таким ID не знайдена.");
                     continue;
                 }
 
                 Console.Write($"Вкажіть кількість для '{game.Name}': ");
-                int qty;
-                if (!int.TryParse(Console.ReadLine(), out qty) || qty <= 0)
+                if (!int.TryParse(Console.ReadLine(), out int qty) || qty <= 0)
                 {
                     Console.WriteLine("Невірна кількість. Пропускаємо.");
+                    continue;
+                }
+
+                int alreadyInCart = cart.ContainsKey(id) ? cart[id] : 0;
+                if (qty + alreadyInCart > game.Quantity)
+                {
+                    int available = game.Quantity - alreadyInCart;
+                    Console.WriteLine($"На складі лишилось {available} шт для цієї гри (з урахуванням кошика).");
                     continue;
                 }
 
@@ -420,6 +413,7 @@ namespace ComputerGamesStore
             if (cart.Count == 0)
             {
                 Console.WriteLine("Кошик порожній.");
+                Console.ReadKey();
                 return;
             }
 
@@ -427,152 +421,226 @@ namespace ComputerGamesStore
             Console.WriteLine("\n=== Вміст кошика ===");
             foreach (var kvp in cart)
             {
-                var g = games.First(x => x.Id == kvp.Key);
+                var g = gamesList.First(x => x.Id == kvp.Key);
                 int q = kvp.Value;
                 double line = g.Price * q;
                 Console.WriteLine($"{g.Name} x{q} = {line:F2} грн");
                 total += line;
             }
 
-            double discountPercent = new Random().Next(5, 26);
-            double discountAmount = Math.Round(total * discountPercent / 100.0, 2);
-            double toPay = Math.Round(total - discountAmount, 2);
+            if (cart.Count >= 3)
+            {
+                double discountPercent = new Random().Next(5, 26);
+                double discountAmount = Math.Round(total * discountPercent / 100.0, 2);
+                total = Math.Round(total - discountAmount, 2);
+                Console.WriteLine($"\n🎉 Ви отримали знижку {discountPercent}% (-{discountAmount:F2} грн)!");
+            }
 
-            Console.WriteLine("\n════════════════════════════════════");
-            Console.WriteLine($"Загальна сума: {total:F2} грн");
-            Console.WriteLine($"Знижка: {discountPercent}% (-{discountAmount:F2} грн)");
-            Console.WriteLine($"До сплати: {toPay:F2} грн");
-            Console.WriteLine("════════════════════════════════════");
+            Console.WriteLine($"\nЗагальна сума до сплати: {total:F2} грн");
+            Console.WriteLine("Підтвердити покупку? (1 - так, інше - ні): ");
+            string confirm = Console.ReadLine();
+
+            if (confirm == "1")
+            {
+                UpdateStockAfterPurchase(cart);
+                Console.WriteLine("✅ Покупка успішна! Кількість на складі оновлено.");
+            }
+            else
+            {
+                Console.WriteLine("Покупку скасовано. На складі нічого не змінено.");
+            }
+
+            Console.ReadKey();
         }
 
-        static void SaveInventoryToFile()
+        static void UpdateStockAfterPurchase(Dictionary<int, int> cart)
         {
-            Console.Clear();
-            Console.WriteLine("=== Збереження інвентарю у файл ===");
-            if (games.Count == 0)
-            {
-                Console.WriteLine("Немає даних для збереження.");
-                return;
-            }
+            var lines = File.ReadAllLines(GamesFile).ToList();
+            if (lines.Count == 0) return;
 
-            string path = "games_inventory.txt";
-            try
+            for (int i = 1; i < lines.Count; i++)
             {
-                var lines = games.Select(g => g.ToFileString()).ToArray();
-                File.WriteAllLines(path, lines);
-                Console.WriteLine($"Інвентар збережено у файл: {path}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Помилка при збереженні: {ex.Message}");
-            }
-        }
+                var p = lines[i].Split(',');
+                if (p.Length != 5) continue;
 
-        static void LoadInventoryFromFile()
-        {
-            Console.Clear();
-            Console.WriteLine("=== Завантаження інвентарю з файлу ===");
-            string path = "games_inventory.txt";
-            if (!File.Exists(path))
-            {
-                Console.WriteLine("Файл не знайдено: games_inventory.txt");
-                return;
-            }
+                if (!int.TryParse(p[0], out int id)) continue;
+                if (!int.TryParse(p[4], out int qtyInStock)) continue;
 
-            try
-            {
-                var lines = File.ReadAllLines(path);
-                var loaded = new List<Game>();
-                foreach (var line in lines)
+                if (cart.ContainsKey(id))
                 {
-                    Game g;
-                    if (Game.TryParseFromFile(line, out g))
-                        loaded.Add(g);
-                    else
-                        Console.WriteLine($"Пропущено невірний рядок: {line}");
-                }
+                    int bought = cart[id];
+                    int newQty = qtyInStock - bought;
+                    if (newQty < 0) newQty = 0;
 
-                if (loaded.Count > 0)
-                {
-                    games = loaded;
-                    Console.WriteLine($"Завантажено {games.Count} ігор з файлу.");
-                }
-                else
-                {
-                    Console.WriteLine("Файл не містив коректних записів.");
+                    lines[i] = $"{p[0]},{p[1]},{p[2]},{p[3]},{newQty}";
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Помилка при зчитуванні: {ex.Message}");
-            }
+
+            File.WriteAllLines(GamesFile, lines);
         }
 
-        static void SeedSampleGames()
-        {
-            if (games.Count > 0) return;
-
-            games.Add(new Game(1, "Apex Strike", Genre.Action, DefaultActionPrice, 10));
-            games.Add(new Game(2, "Empire Tactics", Genre.Strategy, DefaultStrategyPrice, 5));
-            games.Add(new Game(3, "Legends of Arcanum", Genre.RPG, DefaultRpgPrice, 8));
-            games.Add(new Game(4, "City Simulator X", Genre.Simulator, DefaultSimulatorPrice, 3));
-            games.Add(new Game(5, "Indie Puzzle", Genre.Other, 199.0, 12));
-        }
-
-        static void DeleteGameById()
+        //  Редагування гри 
+        static void EditGame()
         {
             Console.Clear();
-            Console.WriteLine("=== Видалення гри за ID ===");
+            Console.WriteLine("=== Редагування гри ===");
 
-            if (games.Count == 0)
+            PrintGamesTableHeader();
+            foreach (var line in File.ReadAllLines(GamesFile).Skip(1))
             {
-                Console.WriteLine("Немає ігор для видалення.");
+                var p = line.Split(',');
+                if (p.Length != 5) continue;
+                Console.WriteLine($"{p[0],2} | {p[1],-20} | {p[2],-10} | {p[3],6} | {p[4],8}");
+            }
+
+            Console.Write("\nВведіть ID гри, яку хочете редагувати: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("Невірний ID");
+                Console.ReadKey();
                 return;
             }
 
-            Console.Write("Введіть ID гри для видалення: ");
-            int id;
-            if (!int.TryParse(Console.ReadLine(), out id))
+            var lines = File.ReadAllLines(GamesFile).ToList();
+            int index = lines.FindIndex(l => l.StartsWith(id + ","));
+            if (index == -1)
             {
-                Console.WriteLine("Невірний ID.");
+                Console.WriteLine("Гра з таким ID не знайдена");
+                Console.ReadKey();
                 return;
             }
 
-            var game = games.FirstOrDefault(g => g.Id == id);
-            if (game.Equals(default(Game)))
+            var parts = lines[index].Split(',');
+            if (parts.Length != 5)
             {
-                Console.WriteLine("Гра з таким ID не знайдена.");
+                Console.WriteLine("Некоректний рядок у файлі");
+                Console.ReadKey();
                 return;
             }
 
-            games.Remove(game);
-            Console.WriteLine($"Гру '{game.Name}' видалено.");
+            string oldName = parts[1];
+            string oldGenre = parts[2];
+            string oldPrice = parts[3];
+            string oldQty = parts[4];
+
+            Console.WriteLine("Залиште поле порожнім, якщо не хочете його змінювати.");
+
+            Console.Write($"Назва [{oldName}]: ");
+            string name = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(name)) name = oldName;
+            name = EscapeCsv(name.Trim());
+
+            Console.WriteLine($"Жанр зараз: {oldGenre}");
+            Console.Write("Змінити жанр? (1 - так, інше - ні): ");
+            string changeGenre = Console.ReadLine();
+            string genreStr = oldGenre;
+            if (changeGenre == "1")
+            {
+                Genre newGenre = ChooseGenre();
+                genreStr = newGenre.ToString();
+            }
+
+            Console.Write($"Ціна [{oldPrice}]: ");
+            string priceInput = Console.ReadLine();
+            double price;
+            if (string.IsNullOrWhiteSpace(priceInput)) price = double.Parse(oldPrice);
+            else if (!double.TryParse(priceInput, out price) || price <= 0)
+            {
+                Console.WriteLine("Невірна ціна. Використовується стара.");
+                price = double.Parse(oldPrice);
+            }
+
+            Console.Write($"Кількість [{oldQty}]: ");
+            string qtyInput = Console.ReadLine();
+            int qty;
+            if (string.IsNullOrWhiteSpace(qtyInput)) qty = int.Parse(oldQty);
+            else if (!int.TryParse(qtyInput, out qty) || qty < 0)
+            {
+                Console.WriteLine("Невірна кількість. Використовується стара.");
+                qty = int.Parse(oldQty);
+            }
+
+            lines[index] = $"{id},{name},{genreStr},{price},{qty}";
+            File.WriteAllLines(GamesFile, lines);
+
+            Console.WriteLine("✅ Гру успішно відредаговано!");
+            Console.ReadKey();
         }
 
-        static void SortGamesMenu()
+        //  HELPERS 
+        static int GenerateId(string path)
         {
-            Console.Clear();
-            Console.WriteLine("=== Сортування ігор ===");
-            Console.WriteLine("1. За назвою (A-Z)");
-            Console.WriteLine("2. За ціною (зростання)");
-            Console.WriteLine("3. За кількістю на складі (зростання)");
-            Console.Write("Ваш вибір: ");
-            int choice;
-            if (!int.TryParse(Console.ReadLine(), out choice))
+            int max = 0;
+            foreach (var line in File.ReadAllLines(path).Skip(1))
             {
-                Console.WriteLine("Невірний вибір.");
-                return;
+                var p = line.Split(',');
+                if (p.Length > 0 && int.TryParse(p[0], out int id))
+                    if (id > max) max = id;
             }
+            return max + 1;
+        }
 
-            switch (choice)
+        static string Hash(string s)
+        {
+            using (var sha = SHA256.Create())
             {
-                case 1: games = games.OrderBy(g => g.Name).ToList(); break;
-                case 2: games = games.OrderBy(g => g.Price).ToList(); break;
-                case 3: games = games.OrderBy(g => g.Quantity).ToList(); break;
-                default: Console.WriteLine("Невірний вибір."); break;
+                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(s))).Replace("-", "").ToLower();
             }
+        }
 
-            Console.WriteLine("Сортування завершено.");
+        static string ReadPassword()
+        {
+            string p = "";
+            ConsoleKeyInfo k;
+            while ((k = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+            {
+                if (k.Key == ConsoleKey.Backspace && p.Length > 0)
+                {
+                    p = p.Substring(0, p.Length - 1);
+                    Console.Write("\b \b");
+                }
+                else if (!char.IsControl(k.KeyChar))
+                {
+                    p += k.KeyChar;
+                    Console.Write("*");
+                }
+            }
+            Console.WriteLine();
+            return p;
+        }
+
+        //  ДРУК ШАПКИ ТАБЛИЦІ 
+        static void PrintGamesTableHeader()
+        {
+            Console.WriteLine("ID | Назва                | Жанр       |   Ціна | Кількість");
+            Console.WriteLine(new string('-', 60));
+        }
+
+        //  ВИБІР ЖАНРУ (ОБОВʼЯЗКОВО ЗІ СПИСКУ) 
+        static Genre ChooseGenre()
+        {
+            while (true)
+            {
+                Console.WriteLine("\nОберіть жанр:");
+                var values = (Genre[])Enum.GetValues(typeof(Genre));
+                foreach (var g in values)
+                    Console.WriteLine($"{(int)g}. {g}");
+
+                Console.Write("Введіть номер жанру: ");
+                if (int.TryParse(Console.ReadLine(), out int choice) &&
+                    Enum.IsDefined(typeof(Genre), choice))
+                {
+                    return (Genre)choice;
+                }
+
+                Console.WriteLine("❌ Невірний вибір жанру. Спробуйте ще раз.");
+            }
+        }
+
+        static string EscapeCsv(string s)
+        {
+            if (s == null) return "";
+            return s.Replace(",", " ");
         }
     }
 }
