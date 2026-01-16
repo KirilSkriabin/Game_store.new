@@ -5,19 +5,14 @@ using System.Linq;
 
 namespace ComputerGamesStore
 {
-    // Лабораторна робота №3 — "Цикли. Багаторазові обчислення та структури даних у C#"
     class Program
     {
-        // --- Константи цін (за замовчуванням) ---
         const double DefaultActionPrice = 599.0;
         const double DefaultStrategyPrice = 449.0;
         const double DefaultRpgPrice = 699.0;
         const double DefaultSimulatorPrice = 399.0;
 
-        // Сховище ігор в пам'яті
         static List<Game> games = new List<Game>();
-
-        // Прості дані для входу
         const string correctLogin = "admin";
         const string correctPassword = "12345";
 
@@ -26,7 +21,6 @@ namespace ComputerGamesStore
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.Title = "GAME WORLD - Магазин ігор (Лабораторна №3)";
 
-            // Система входу (do-while) — максимум 3 спроби
             bool loggedIn = LoginSystem();
             if (!loggedIn)
             {
@@ -34,14 +28,10 @@ namespace ComputerGamesStore
                 return;
             }
 
-            // Ініціалізуємо кілька тестових товарів (щоб було з чим працювати)
             SeedSampleGames();
-
-            // Головне меню (while)
             ShowMainMenu();
         }
 
-        // ----------------- Система входу -----------------
         static bool LoginSystem()
         {
             int attempts = 0;
@@ -77,10 +67,9 @@ namespace ComputerGamesStore
 
             } while (attempts < maxAttempts);
 
-            return false; // перевищено спроби
+            return false;
         }
 
-        // Допоміжна: читає пароль без відображення на екрані
         static string ReadPassword()
         {
             string pwd = string.Empty;
@@ -103,7 +92,6 @@ namespace ComputerGamesStore
             return pwd;
         }
 
-        // ----------------- Меню -----------------
         static void ShowMainMenu()
         {
             bool exit = false;
@@ -124,6 +112,8 @@ namespace ComputerGamesStore
                 Console.WriteLine("5. Розрахувати покупку (кошик)");
                 Console.WriteLine("6. Зберегти інвентар у файл");
                 Console.WriteLine("7. Завантажити інвентар з файлу");
+                Console.WriteLine("8. Видалити гру за ID");
+                Console.WriteLine("9. Сортувати ігри");
                 Console.WriteLine("0. Вихід");
                 Console.WriteLine();
                 Console.Write("Ваш вибір: ");
@@ -132,41 +122,24 @@ namespace ComputerGamesStore
                 int choice;
                 if (!int.TryParse(input, out choice))
                 {
-                    Console.WriteLine("⚠ Помилка: введіть число від 0 до 7.");
+                    Console.WriteLine("⚠ Помилка: введіть число від 0 до 9.");
                     Pause();
-                    continue; // повертаємось до меню
+                    continue;
                 }
 
                 switch (choice)
                 {
-                    case 1:
-                        AddGamesInteractive();
-                        break;
-                    case 2:
-                        ShowProducts();
-                        break;
-                    case 3:
-                        ShowStatistics();
-                        break;
-                    case 4:
-                        SearchGameByName();
-                        break;
-                    case 5:
-                        CalculatePurchase();
-                        break;
-                    case 6:
-                        SaveInventoryToFile();
-                        break;
-                    case 7:
-                        LoadInventoryFromFile();
-                        break;
-                    case 0:
-                        Console.WriteLine("Вихід із програми...");
-                        exit = true;
-                        break;
-                    default:
-                        Console.WriteLine("❌ Невірний вибір! Спробуйте ще раз.");
-                        break;
+                    case 1: AddGamesInteractive(); break;
+                    case 2: ShowProducts(); break;
+                    case 3: ShowStatistics(); break;
+                    case 4: SearchGameByName(); break;
+                    case 5: CalculatePurchase(); break;
+                    case 6: SaveInventoryToFile(); break;
+                    case 7: LoadInventoryFromFile(); break;
+                    case 8: DeleteGameById(); break;
+                    case 9: SortGamesMenu(); break;
+                    case 0: Console.WriteLine("Вихід із програми..."); exit = true; break;
+                    default: Console.WriteLine("❌ Невірний вибір! Спробуйте ще раз."); break;
                 }
 
                 if (!exit)
@@ -183,18 +156,16 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        // ----------------- Структура Game -----------------
         enum Genre { Action, Strategy, RPG, Simulator, Other }
 
         struct Game
         {
-            public int Id;            // int
-            public string Name;       // string
-            public Genre GameGenre;   // enum
-            public double Price;      // double
-            public int Quantity;      // int
+            public int Id;
+            public string Name;
+            public Genre GameGenre;
+            public double Price;
+            public int Quantity;
 
-            // Конструктор
             public Game(int id, string name, Genre genre, double price, int quantity)
             {
                 Id = id;
@@ -229,7 +200,6 @@ namespace ComputerGamesStore
             }
         }
 
-        // ----------------- Функції меню -----------------
         static void AddGamesInteractive()
         {
             Console.Clear();
@@ -243,7 +213,6 @@ namespace ComputerGamesStore
                 return;
             }
 
-            // for - введення фіксованої кількості
             int startId = games.Count > 0 ? games.Max(g => g.Id) + 1 : 1;
             for (int i = 0; i < count; i++)
             {
@@ -254,7 +223,7 @@ namespace ComputerGamesStore
                 if (string.IsNullOrWhiteSpace(name))
                 {
                     Console.WriteLine("Ім'я не може бути пустим. Пропускаємо цю гру (continue).");
-                    continue; // пропускаємо невалідну ітерацію
+                    continue;
                 }
 
                 Console.Write("Жанр (Action/Strategy/RPG/Simulator/Other): ");
@@ -271,7 +240,7 @@ namespace ComputerGamesStore
                 if (!double.TryParse(Console.ReadLine(), out price) || price <= 0)
                 {
                     Console.WriteLine("Невірна ціна — пропускаємо цю гру.");
-                    continue; // пропускаємо невалідну ітерацію
+                    continue;
                 }
 
                 Console.Write("Кількість на складі: ");
@@ -279,7 +248,7 @@ namespace ComputerGamesStore
                 if (!int.TryParse(Console.ReadLine(), out qty) || qty < 0)
                 {
                     Console.WriteLine("Невірна кількість — встановлюємо 0.");
-                    qty = 0; // дозволяємо, але показуємо приклад використання continue / break
+                    qty = 0;
                 }
 
                 var game = new Game(startId + i, name.Trim(), genre, price, qty);
@@ -319,23 +288,19 @@ namespace ComputerGamesStore
                 return;
             }
 
-            // Загальна сума (цін * кількість)
             double totalSum = 0;
             double sumPrices = 0;
             int countWithPrice = 0;
-            int expensiveCount = 0; // > 500 грн
+            int expensiveCount = 0;
 
             double minPrice = double.MaxValue;
             double maxPrice = double.MinValue;
             string cheapest = "-";
             string mostExpensive = "-";
 
-            // Приклад використання циклу for
             for (int i = 0; i < games.Count; i++)
             {
                 var g = games[i];
-
-                // Пропуск невалідної ціни
                 if (g.Price <= 0) continue;
 
                 totalSum += g.Price * g.Quantity;
@@ -371,7 +336,6 @@ namespace ComputerGamesStore
                 Console.WriteLine("Немає коректних цін для мін/макс.");
             }
 
-            // Форматований звіт (функція для звіту)
             Console.WriteLine("\n=== Звіт: таблиця інвентарю ===");
             Console.WriteLine("[ID] Назва                          | Жанр      |    Ціна | Кільк");
             Console.WriteLine(new string('─', 70));
@@ -394,7 +358,6 @@ namespace ComputerGamesStore
             }
 
             bool found = false;
-            // Приклад використання foreach + break
             foreach (var g in games)
             {
                 if (g.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
@@ -402,8 +365,6 @@ namespace ComputerGamesStore
                     Console.WriteLine("Знайдено:");
                     g.DisplayLine();
                     found = true;
-                    // Якщо потрібно зупинити пошук після першої знайденої — використовуємо break
-                    // break; // <- можна розкоментувати, якщо хочемо тільки перший результат
                 }
             }
 
@@ -422,7 +383,6 @@ namespace ComputerGamesStore
                 return;
             }
 
-            // Користувач обирає кілька ігор по ID і вказує кількість
             Dictionary<int, int> cart = new Dictionary<int, int>();
 
             while (true)
@@ -432,12 +392,12 @@ namespace ComputerGamesStore
                 if (!int.TryParse(Console.ReadLine(), out id))
                 {
                     Console.WriteLine("Невірний ID — спробуйте ще раз.");
-                    continue; // пропускаємо поточну ітерацію
+                    continue;
                 }
                 if (id == 0) break;
 
                 var game = games.FirstOrDefault(g => g.Id == id);
-                if (game.Name == null)
+                if (game.Equals(default(Game)))
                 {
                     Console.WriteLine("Гра з таким ID не знайдена.");
                     continue;
@@ -474,7 +434,6 @@ namespace ComputerGamesStore
                 total += line;
             }
 
-            // Знижка випадкова між 5 та 25% (демонстрація Math та Random)
             double discountPercent = new Random().Next(5, 26);
             double discountAmount = Math.Round(total * discountPercent / 100.0, 2);
             double toPay = Math.Round(total - discountAmount, 2);
@@ -551,13 +510,69 @@ namespace ComputerGamesStore
 
         static void SeedSampleGames()
         {
-            if (games.Count > 0) return; // не дублюємо
+            if (games.Count > 0) return;
 
             games.Add(new Game(1, "Apex Strike", Genre.Action, DefaultActionPrice, 10));
             games.Add(new Game(2, "Empire Tactics", Genre.Strategy, DefaultStrategyPrice, 5));
             games.Add(new Game(3, "Legends of Arcanum", Genre.RPG, DefaultRpgPrice, 8));
             games.Add(new Game(4, "City Simulator X", Genre.Simulator, DefaultSimulatorPrice, 3));
             games.Add(new Game(5, "Indie Puzzle", Genre.Other, 199.0, 12));
+        }
+
+        static void DeleteGameById()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Видалення гри за ID ===");
+
+            if (games.Count == 0)
+            {
+                Console.WriteLine("Немає ігор для видалення.");
+                return;
+            }
+
+            Console.Write("Введіть ID гри для видалення: ");
+            int id;
+            if (!int.TryParse(Console.ReadLine(), out id))
+            {
+                Console.WriteLine("Невірний ID.");
+                return;
+            }
+
+            var game = games.FirstOrDefault(g => g.Id == id);
+            if (game.Equals(default(Game)))
+            {
+                Console.WriteLine("Гра з таким ID не знайдена.");
+                return;
+            }
+
+            games.Remove(game);
+            Console.WriteLine($"Гру '{game.Name}' видалено.");
+        }
+
+        static void SortGamesMenu()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Сортування ігор ===");
+            Console.WriteLine("1. За назвою (A-Z)");
+            Console.WriteLine("2. За ціною (зростання)");
+            Console.WriteLine("3. За кількістю на складі (зростання)");
+            Console.Write("Ваш вибір: ");
+            int choice;
+            if (!int.TryParse(Console.ReadLine(), out choice))
+            {
+                Console.WriteLine("Невірний вибір.");
+                return;
+            }
+
+            switch (choice)
+            {
+                case 1: games = games.OrderBy(g => g.Name).ToList(); break;
+                case 2: games = games.OrderBy(g => g.Price).ToList(); break;
+                case 3: games = games.OrderBy(g => g.Quantity).ToList(); break;
+                default: Console.WriteLine("Невірний вибір."); break;
+            }
+
+            Console.WriteLine("Сортування завершено.");
         }
     }
 }
