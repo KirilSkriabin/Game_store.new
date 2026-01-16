@@ -13,7 +13,7 @@ namespace ComputerGamesStore
             const double strategyGamePrice = 449.0;
             const double rpgGamePrice = 699.0;
             const double simulatorGamePrice = 399.0;
-
+             
             // Зміна кольору заголовка
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("═══════════════════════════════════════════════");
