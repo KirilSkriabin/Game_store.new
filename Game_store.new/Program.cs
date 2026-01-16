@@ -1,24 +1,32 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Security.Cryptography;
-using System.Collections.Generic;
+﻿// <copyright file="Program.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace ComputerGamesStore
 {
-    class Program
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Security.Cryptography;
+    using System.Text;
+
+    internal class Program
     {
-        const string GamesFile = "games.csv";
-        const string UsersFile = "users.csv";
+        private const string GamesFile = "games.csv";
+        private const string UsersFile = "users.csv";
 
-        //  РОЛІ 
-        const string AdminEmail = "admin"; // адмінський акаунт 
-        static bool isAdmin = false;
-        static string currentUserEmail = "";
+        // РОЛІ
+        private const string AdminEmail = "admin"; // адмінський акаунт
+        private static bool isAdmin = false;
+        private static string currentUserEmail = string.Empty;
 
-        //  ФІКСОВАНІ ЖАНРИ 
-        enum Genre
+        public Program()
+        {
+        }
+
+        // ФІКСОВАНІ ЖАНРИ
+        private enum Genre
         {
             Action = 1,
             Strategy,
@@ -29,32 +37,38 @@ namespace ComputerGamesStore
             Sports,
             Horror,
             Indie,
-            Other
+            Other,
         }
 
-        static void Main()
+        private static void Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
             EnsureFiles();
 
             if (!AuthMenu())
+            {
                 return;
+            }
 
             MainMenu();
         }
 
-        //  FILE INIT 
-        static void EnsureFiles()
+        // FILE INIT
+        private static void EnsureFiles()
         {
             if (!File.Exists(GamesFile))
+            {
                 File.WriteAllText(GamesFile, "Id,Name,Genre,Price,Quantity\n");
+            }
 
             if (!File.Exists(UsersFile))
+            {
                 File.WriteAllText(UsersFile, "Id,Email,PasswordHash\n");
+            }
         }
 
-        //  AUTH 
-        static bool AuthMenu()
+        // AUTH
+        private static bool AuthMenu()
         {
             while (true)
             {
@@ -73,10 +87,9 @@ namespace ComputerGamesStore
             }
         }
 
-        static bool Login()
+        private static bool Login()
         {
             Console.Write("Email: ");
-            string email = Console.ReadLine();
             Console.Write("Пароль: ");
             string pass = ReadPassword();
             string hash = Hash(pass);
@@ -84,7 +97,13 @@ namespace ComputerGamesStore
             foreach (var line in File.ReadAllLines(UsersFile).Skip(1))
             {
                 var p = line.Split(',');
-                if (p.Length != 3) continue;
+                if (p.Length != 3)
+                {
+                    continue;
+                }
+
+#pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+                string email = Console.ReadLine();
 
                 if (p[1] == email && p[2] == hash)
                 {
@@ -99,7 +118,7 @@ namespace ComputerGamesStore
             return false;
         }
 
-        static void Register()
+        private static void Register()
         {
             Console.Write("Email: ");
             string email = Console.ReadLine();
@@ -120,8 +139,8 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        //  MAIN MENU 
-        static void MainMenu()
+        // MAIN MENU
+        private static void MainMenu()
         {
             while (true)
             {
@@ -168,17 +187,29 @@ namespace ComputerGamesStore
 
                     // Тільки адміну
                     case "1":
-                        if (!RequireAdmin()) break;
+                        if (!RequireAdmin())
+                        {
+                            break;
+                        }
+
                         AddGame();
                         break;
 
                     case "3":
-                        if (!RequireAdmin()) break;
+                        if (!RequireAdmin())
+                        {
+                            break;
+                        }
+
                         DeleteGame();
                         break;
 
                     case "6":
-                        if (!RequireAdmin()) break;
+                        if (!RequireAdmin())
+                        {
+                            break;
+                        }
+
                         EditGame();
                         break;
 
@@ -190,18 +221,21 @@ namespace ComputerGamesStore
             }
         }
 
-        //  ПЕРЕВІРКА ПРАВ АДМІНА 
-        static bool RequireAdmin()
+        // ПЕРЕВІРКА ПРАВ АДМІНА
+        private static bool RequireAdmin()
         {
-            if (isAdmin) return true;
+            if (isAdmin)
+            {
+                return true;
+            }
 
             Console.WriteLine("⛔ Доступ заборонено. Ця функція доступна лише адміністратору.");
             Console.ReadKey();
             return false;
         }
 
-        //  GAMES 
-        static void AddGame()
+        // GAMES
+        private static void AddGame()
         {
             Console.Clear();
             Console.WriteLine("=== ДОДАТИ ГРУ ===");
@@ -240,7 +274,7 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        static void ShowGames()
+        private static void ShowGames()
         {
             Console.Clear();
 
@@ -250,7 +284,10 @@ namespace ComputerGamesStore
             foreach (var line in File.ReadAllLines(GamesFile).Skip(1))
             {
                 var p = line.Split(',');
-                if (p.Length != 5) continue;
+                if (p.Length != 5)
+                {
+                    continue;
+                }
 
                 Console.WriteLine($"{p[0],2} | {p[1],-20} | {p[2],-10} | {p[3],6} | {p[4],8}");
             }
@@ -258,7 +295,7 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        static void DeleteGame()
+        private static void DeleteGame()
         {
             Console.Clear();
             Console.WriteLine("=== ВИДАЛЕННЯ ГРИ ===");
@@ -271,7 +308,7 @@ namespace ComputerGamesStore
             }
 
             var lines = File.ReadAllLines(GamesFile)
-                .Where(l => !(l.StartsWith(id + ",")))
+                .Where(l => !l.StartsWith(id + ","))
                 .ToArray();
 
             File.WriteAllLines(GamesFile, lines);
@@ -280,7 +317,7 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        static void Stats()
+        private static void Stats()
         {
             Console.Clear();
             Console.WriteLine("=== СТАТИСТИКА ===");
@@ -311,8 +348,8 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        //  ФІЛЬТРАЦІЯ ЗА ЖАНРОМ 
-        static void FilterGamesByGenre()
+        // ФІЛЬТРАЦІЯ ЗА ЖАНРОМ
+        private static void FilterGamesByGenre()
         {
             Console.Clear();
             Console.WriteLine("=== ФІЛЬТРАЦІЯ ІГОР ЗА ЖАНРОМ ===");
@@ -338,13 +375,15 @@ namespace ComputerGamesStore
             }
 
             foreach (var p in rows)
+            {
                 Console.WriteLine($"{p[0],2} | {p[1],-20} | {p[2],-10} | {p[3],6} | {p[4],8}");
+            }
 
             Console.ReadKey();
         }
 
-        //  Кошик з рандомною знижкою 
-        static void BuyGames()
+        // Кошик з рандомною знижкою
+        private static void BuyGames()
         {
             Console.Clear();
             Console.WriteLine("=== КУПІВЛЯ ІГОР ===");
@@ -380,7 +419,11 @@ namespace ComputerGamesStore
                     Console.WriteLine("Невірний ID. Спробуйте ще раз.");
                     continue;
                 }
-                if (id == 0) break;
+
+                if (id == 0)
+                {
+                    break;
+                }
 
                 var game = gamesList.FirstOrDefault(g => g.Id == id);
                 if (game == null)
@@ -404,8 +447,14 @@ namespace ComputerGamesStore
                     continue;
                 }
 
-                if (cart.ContainsKey(id)) cart[id] += qty;
-                else cart[id] = qty;
+                if (cart.ContainsKey(id))
+                {
+                    cart[id] += qty;
+                }
+                else
+                {
+                    cart[id] = qty;
+                }
 
                 Console.WriteLine("Додано до кошика.");
             }
@@ -453,24 +502,40 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        static void UpdateStockAfterPurchase(Dictionary<int, int> cart)
+        private static void UpdateStockAfterPurchase(Dictionary<int, int> cart)
         {
             var lines = File.ReadAllLines(GamesFile).ToList();
-            if (lines.Count == 0) return;
+            if (lines.Count == 0)
+            {
+                return;
+            }
 
             for (int i = 1; i < lines.Count; i++)
             {
                 var p = lines[i].Split(',');
-                if (p.Length != 5) continue;
+                if (p.Length != 5)
+                {
+                    continue;
+                }
 
-                if (!int.TryParse(p[0], out int id)) continue;
-                if (!int.TryParse(p[4], out int qtyInStock)) continue;
+                if (!int.TryParse(p[0], out int id))
+                {
+                    continue;
+                }
+
+                if (!int.TryParse(p[4], out int qtyInStock))
+                {
+                    continue;
+                }
 
                 if (cart.ContainsKey(id))
                 {
                     int bought = cart[id];
                     int newQty = qtyInStock - bought;
-                    if (newQty < 0) newQty = 0;
+                    if (newQty < 0)
+                    {
+                        newQty = 0;
+                    }
 
                     lines[i] = $"{p[0]},{p[1]},{p[2]},{p[3]},{newQty}";
                 }
@@ -479,8 +544,8 @@ namespace ComputerGamesStore
             File.WriteAllLines(GamesFile, lines);
         }
 
-        //  Редагування гри 
-        static void EditGame()
+        // Редагування гри
+        private static void EditGame()
         {
             Console.Clear();
             Console.WriteLine("=== Редагування гри ===");
@@ -489,7 +554,11 @@ namespace ComputerGamesStore
             foreach (var line in File.ReadAllLines(GamesFile).Skip(1))
             {
                 var p = line.Split(',');
-                if (p.Length != 5) continue;
+                if (p.Length != 5)
+                {
+                    continue;
+                }
+
                 Console.WriteLine($"{p[0],2} | {p[1],-20} | {p[2],-10} | {p[3],6} | {p[4],8}");
             }
 
@@ -527,7 +596,11 @@ namespace ComputerGamesStore
 
             Console.Write($"Назва [{oldName}]: ");
             string name = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(name)) name = oldName;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = oldName;
+            }
+
             name = EscapeCsv(name.Trim());
 
             Console.WriteLine($"Жанр зараз: {oldGenre}");
@@ -543,7 +616,10 @@ namespace ComputerGamesStore
             Console.Write($"Ціна [{oldPrice}]: ");
             string priceInput = Console.ReadLine();
             double price;
-            if (string.IsNullOrWhiteSpace(priceInput)) price = double.Parse(oldPrice);
+            if (string.IsNullOrWhiteSpace(priceInput))
+            {
+                price = double.Parse(oldPrice);
+            }
             else if (!double.TryParse(priceInput, out price) || price <= 0)
             {
                 Console.WriteLine("Невірна ціна. Використовується стара.");
@@ -553,7 +629,10 @@ namespace ComputerGamesStore
             Console.Write($"Кількість [{oldQty}]: ");
             string qtyInput = Console.ReadLine();
             int qty;
-            if (string.IsNullOrWhiteSpace(qtyInput)) qty = int.Parse(oldQty);
+            if (string.IsNullOrWhiteSpace(qtyInput))
+            {
+                qty = int.Parse(oldQty);
+            }
             else if (!int.TryParse(qtyInput, out qty) || qty < 0)
             {
                 Console.WriteLine("Невірна кількість. Використовується стара.");
@@ -567,30 +646,36 @@ namespace ComputerGamesStore
             Console.ReadKey();
         }
 
-        //  HELPERS 
-        static int GenerateId(string path)
+        // HELPERS
+        private static int GenerateId(string path)
         {
             int max = 0;
             foreach (var line in File.ReadAllLines(path).Skip(1))
             {
                 var p = line.Split(',');
                 if (p.Length > 0 && int.TryParse(p[0], out int id))
-                    if (id > max) max = id;
+                {
+                    if (id > max)
+                    {
+                        max = id;
+                    }
+                }
             }
+
             return max + 1;
         }
 
-        static string Hash(string s)
+        private static string Hash(string s)
         {
             using (var sha = SHA256.Create())
             {
-                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(s))).Replace("-", "").ToLower();
+                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(s))).Replace("-", string.Empty).ToLower();
             }
         }
 
-        static string ReadPassword()
+        private static string ReadPassword()
         {
-            string p = "";
+            string p = string.Empty;
             ConsoleKeyInfo k;
             while ((k = Console.ReadKey(true)).Key != ConsoleKey.Enter)
             {
@@ -605,26 +690,29 @@ namespace ComputerGamesStore
                     Console.Write("*");
                 }
             }
+
             Console.WriteLine();
             return p;
         }
 
-        //  ДРУК ШАПКИ ТАБЛИЦІ 
-        static void PrintGamesTableHeader()
+        // ДРУК ШАПКИ ТАБЛИЦІ
+        private static void PrintGamesTableHeader()
         {
             Console.WriteLine("ID | Назва                | Жанр       |   Ціна | Кількість");
             Console.WriteLine(new string('-', 60));
         }
 
-        //  ВИБІР ЖАНРУ (ОБОВʼЯЗКОВО ЗІ СПИСКУ) 
-        static Genre ChooseGenre()
+        // ВИБІР ЖАНРУ (ОБОВʼЯЗКОВО ЗІ СПИСКУ)
+        private static Genre ChooseGenre()
         {
             while (true)
             {
                 Console.WriteLine("\nОберіть жанр:");
                 var values = (Genre[])Enum.GetValues(typeof(Genre));
                 foreach (var g in values)
+                {
                     Console.WriteLine($"{(int)g}. {g}");
+                }
 
                 Console.Write("Введіть номер жанру: ");
                 if (int.TryParse(Console.ReadLine(), out int choice) &&
@@ -637,9 +725,13 @@ namespace ComputerGamesStore
             }
         }
 
-        static string EscapeCsv(string s)
+        private static string EscapeCsv(string s)
         {
-            if (s == null) return "";
+            if (s == null)
+            {
+                return string.Empty;
+            }
+
             return s.Replace(",", " ");
         }
     }
