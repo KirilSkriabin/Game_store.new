@@ -4,17 +4,22 @@ namespace ComputerGamesStore
 {
     class Program
     {
+        // --- Константи цін ---
+        const double actionGamePrice = 599.0;
+        const double strategyGamePrice = 449.0;
+        const double rpgGamePrice = 699.0;
+        const double simulatorGamePrice = 399.0;
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ShowMainMenu(); // запуск головного меню
+        }
 
-            // Ціни на ігри
-            const double actionGamePrice = 599.0;
-            const double strategyGamePrice = 449.0;
-            const double rpgGamePrice = 699.0;
-            const double simulatorGamePrice = 399.0;
-             
-            // Зміна кольору заголовка
+        // --- ГОЛОВНЕ МЕНЮ ---
+        static void ShowMainMenu()
+        {
+            Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("═══════════════════════════════════════════════");
             Console.WriteLine("           GAME WORLD - Магазин ігор");
@@ -22,136 +27,126 @@ namespace ComputerGamesStore
             Console.ResetColor();
             Console.WriteLine();
 
-            // Вивід меню ігор з кольорами
+            Console.WriteLine("1. Переглянути асортимент");
+            Console.WriteLine("2. Розрахувати покупку");
+            Console.WriteLine("3. Інформація про магазин");
+            Console.WriteLine("4. Налаштування");
+            Console.WriteLine("0. Вихід");
+            Console.WriteLine();
+
+            Console.Write("Ваш вибір: ");
+            string input = Console.ReadLine();
+
+            try
+            {
+                int choice = int.Parse(input);
+                switch (choice)
+                {
+                    case 1:
+                        ShowProducts();
+                        break;
+                    case 2:
+                        CalculatePurchase();
+                        break;
+                    case 3:
+                        ShowInfo();
+                        break;
+                    case 4:
+                        Settings();
+                        break;
+                    case 0:
+                        Console.WriteLine("Вихід із програми...");
+                        return;
+                    default:
+                        Console.WriteLine("❌ Невірний вибір! Спробуйте ще раз.");
+                        break;
+                }
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("⚠ Помилка! Введіть число від 0 до 4.");
+            }
+
+            Console.WriteLine("\nНатисніть будь-яку клавішу, щоб повернутися до меню...");
+            Console.ReadKey();
+            ShowMainMenu(); // рекурсивне повернення до меню
+        }
+
+        // --- ФУНКЦІЇ МЕНЮ ---
+
+        static void ShowProducts()
+        {
+            Console.Clear();
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(" МЕНЮ КОМП'ЮТЕРНИХ ІГОР:");
+            Console.WriteLine("МЕНЮ КОМП'ЮТЕРНИХ ІГОР:");
             Console.ResetColor();
 
             Console.WriteLine($"1. Екшн-гра (Action) - {actionGamePrice} грн");
             Console.WriteLine($"2. Стратегія (Strategy) - {strategyGamePrice} грн");
             Console.WriteLine($"3. RPG гра - {rpgGamePrice} грн");
             Console.WriteLine($"4. Симулятор - {simulatorGamePrice} грн");
-            Console.WriteLine();
 
-            // Введення кількості ігор
+        }
+
+        static void CalculatePurchase()
+        {
+            Console.Clear();
+            Console.WriteLine("=== РОЗРАХУНОК ПОКУПКИ ===");
+
+            try
+            {
+                Console.Write("Екшн-ігри: ");
+                int actionQuantity = Convert.ToInt32(Console.ReadLine());
+
+                Console.Write("Стратегії: ");
+                int strategyQuantity = Convert.ToInt32(Console.ReadLine());
+
+                Console.Write("RPG ігри: ");
+                int rpgQuantity = Convert.ToInt32(Console.ReadLine());
+
+                Console.Write("Симулятори: ");
+                int simulatorQuantity = Convert.ToInt32(Console.ReadLine());
+
+                double total = actionGamePrice * actionQuantity
+                             + strategyGamePrice * strategyQuantity
+                             + rpgGamePrice * rpgQuantity
+                             + simulatorGamePrice * simulatorQuantity;
+
+                double discount = new Random().Next(5, 26);
+                double discountAmount = Math.Round(total * discount / 100.0, 2);
+                double amountToPay = Math.Round(total - discountAmount, 2);
+
+                Console.WriteLine("\n════════════════════════════════════");
+                Console.WriteLine($"Загальна сума: {total} грн");
+                Console.WriteLine($"Знижка: {discount}% (-{discountAmount} грн)");
+                Console.WriteLine($"До сплати: {amountToPay} грн");
+                Console.WriteLine("════════════════════════════════════");
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("⚠ Помилка: введено нечислове значення!");
+            }
+        }
+
+        static void ShowInfo()
+        {
+            Console.Clear();
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Введіть кількість для кожної категорії ігор:");
-            Console.ResetColor();
-            Console.WriteLine();
-
-            Console.Write("Екшн-ігри: ");
-            int actionQuantity = Convert.ToInt32(Console.ReadLine());
-
-            Console.Write("Стратегії: ");
-            int strategyQuantity = Convert.ToInt32(Console.ReadLine());
-
-            Console.Write("RPG ігри: ");
-            int rpgQuantity = Convert.ToInt32(Console.ReadLine());
-
-            Console.Write("Симулятори: ");
-            int simulatorQuantity = Convert.ToInt32(Console.ReadLine());
-
-            // Розрахунок сум
-            double actionTotal = actionGamePrice * actionQuantity;
-            double strategyTotal = strategyGamePrice * strategyQuantity;
-            double rpgTotal = rpgGamePrice * rpgQuantity;
-            double simulatorTotal = simulatorGamePrice * simulatorQuantity;
-
-            double totalAmount = actionTotal + strategyTotal + rpgTotal + simulatorTotal;
-
-            // Використання Math для розрахунків
-            double averagePrice = totalAmount / (actionQuantity + strategyQuantity + rpgQuantity + simulatorQuantity);
-            averagePrice = Math.Round(averagePrice, 2); // Округлення до 2 знаків
-
-            // Генерація випадкової знижки (5-25%)
-            Random random = new Random();
-            double discountPercent = random.Next(5, 26);
-            double discountAmount = totalAmount * (discountPercent / 100.0);
-            discountAmount = Math.Round(discountAmount, 2);
-
-            // Розрахунок бонусних балів (квадратний корінь від суми)
-            double bonusPoints = Math.Sqrt(totalAmount);
-            bonusPoints = Math.Round(bonusPoints, 1);
-
-            // Розрахунок фінальної суми
-            double amountToPay = totalAmount - discountAmount;
-            amountToPay = Math.Round(amountToPay, 2);
-
-            // Вивід чека
-            Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("═══════════════════════════════════════════════");
-            Console.WriteLine("                   ЧЕК");
-            Console.WriteLine("═══════════════════════════════════════════════");
+            Console.WriteLine("ІНФОРМАЦІЯ ПРО МАГАЗИН");
             Console.ResetColor();
 
-            // Деталі замовлення
-            if (actionQuantity > 0)
-                Console.WriteLine($" Екшн-ігри ({actionQuantity} шт.) - {actionTotal} грн");
+            Console.WriteLine("Назва: GAME WORLD");
+            Console.WriteLine("Адреса: м. Київ, вул. Ігрова, 5");
+            Console.WriteLine("Телефон: +38 (044) 123-45-67");
+            Console.WriteLine("Години роботи: 10:00 - 20:00");
 
-            if (strategyQuantity > 0)
-                Console.WriteLine($" Стратегії ({strategyQuantity} шт.) - {strategyTotal} грн");
+        }
 
-            if (rpgQuantity > 0)
-                Console.WriteLine($" RPG ігри ({rpgQuantity} шт.) - {rpgTotal} грн");
-
-            if (simulatorQuantity > 0)
-                Console.WriteLine($" Симулятори ({simulatorQuantity} шт.) - {simulatorTotal} грн");
-
-            Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine($" Загальна сума: {totalAmount} грн");
-            Console.WriteLine($" Середня ціна за гру: {averagePrice} грн");
-            Console.ResetColor();
-            Console.WriteLine();
-
-            // Інформація про знижку та бонуси
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($" Вам нараховано знижку: {discountPercent}%");
-            Console.WriteLine($" Сума знижки: {discountAmount} грн");
-            Console.WriteLine($" Бонусні бали: {bonusPoints}");
-            Console.ResetColor();
-            Console.WriteLine();
-
-            // Фінальна сума
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("═══════════════════════════════════════════════");
-            Console.WriteLine($" ДО СПЛАТИ: {amountToPay} грн");
-            Console.WriteLine("═══════════════════════════════════════════════");
-            Console.ResetColor();
-            Console.WriteLine();
-
-            // Додаткова статистика
-            int totalGames = actionQuantity + strategyQuantity + rpgQuantity + simulatorQuantity;
-            Console.WriteLine($" Загальна кількість ігор: {totalGames} шт.");
-
-            // Використання Math.Pow для розрахунку потенційної економії
-            double potentialSavings = Math.Pow(totalGames, 2) * 0.1;
-            potentialSavings = Math.Round(potentialSavings, 2);
-            Console.WriteLine($" Потенційна економія при покупці набору: {potentialSavings} грн");
-
-            // Персоналізоване повідомлення
-            Console.WriteLine();
-            if (totalAmount > 2000)
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine(" Вітаємо з відмінним вибором! Ви справжній геймер!");
-            }
-            else if (totalAmount > 1000)
-            {
-                Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine(" Чудовий вибір! Гарного геймінгу!");
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine(" Дякуємо за покупку! Заходьте ще!");
-            }
-            Console.ResetColor();
-
-            Console.WriteLine();
-            Console.WriteLine("Натисніть будь-яку клавішу для виходу...");
-            Console.ReadKey();
+        static void Settings()
+        {
+            Console.Clear();
+            Console.WriteLine("=== НАЛАШТУВАННЯ ===");
+            Console.WriteLine("Функція в розробці...");
         }
     }
 }
